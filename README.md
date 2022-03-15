@@ -1,12 +1,12 @@
-# ThicknessMap Extention
+# ThicknessMap Extension
 This extension can be installed in the 3d Slicer program.
 The purpose of this extension is to generate thickness maps of segments from MR or CT data.
 The thickness value of any desired point on the generated model can be obtained by using landmarks or the entire thickness map model can be exported to a file.
 
 # Usage at 3dSlicer
-1) Install ThicknessMap extention by using the Extension Wizard or Manuel
+1) Install ThicknessMap extension by using the Extension Wizard or Manuel
 2) Load a MRI or CT data to 3D Slicer (you can use Sample Data extension)
-3) Open ThicknessMap extention and select a 3D input volume
+3) Open ThicknessMap extension and select a 3D input volume
 4) Set a threshold value to get a segment from the 3D volume and click Apply Segmentation button. You can repeat this process until you find the most suitable threshold value
 7) Click the Apply Thickness button to generate Thickness Map model of the segment
 
@@ -18,5 +18,5 @@ The thickness value of any desired point on the generated model can be obtained 
 
 [1] Fluvio Lobo, Most Efficient Way of Creating a Thickness Map, Link: https://discourse.slicer.org/t/most-efficient-way-of-creating-a-thickness-map/18203/3
 
-# Sample view of the extention
+# Sample view of the extension
 ![image](https://user-images.githubusercontent.com/22032994/158266336-d6c9699a-8e6a-4e71-84f7-226c1b63aa5e.png)
