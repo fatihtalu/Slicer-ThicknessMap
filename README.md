@@ -18,5 +18,5 @@ The thickness value of any desired point on the generated model can be obtained 
 
 [1] Fluvio Lobo, Most Efficient Way of Creating a Thickness Map, Link: https://discourse.slicer.org/t/most-efficient-way-of-creating-a-thickness-map/18203/3
 
-# Example 
+# Sample view of the extention
 ![image](https://user-images.githubusercontent.com/22032994/158266336-d6c9699a-8e6a-4e71-84f7-226c1b63aa5e.png)
