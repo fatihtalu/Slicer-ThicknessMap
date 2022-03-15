@@ -21,4 +21,4 @@ There is no patent related to the extension.
 [1] Fluvio Lobo, Most Efficient Way of Creating a Thickness Map, Link: https://discourse.slicer.org/t/most-efficient-way-of-creating-a-thickness-map/18203/3
 
 # Sample view of the extension
-![image](https://user-images.githubusercontent.com/22032994/158266336-d6c9699a-8e6a-4e71-84f7-226c1b63aa5e.png)
+![2](https://user-images.githubusercontent.com/22032994/158332495-b367f4e5-7c48-4864-9b43-cb600989ee3d.PNG)
