@@ -2,6 +2,8 @@
 This extension can be installed in the 3d Slicer program.
 The purpose of this extension is to generate thickness maps of segments from MR or CT data.
 The thickness value of any desired point on the generated model can be obtained by using landmarks or the entire thickness map model can be exported to a file.
+This extension includes the implementation of the approach shown in link [1].
+There is no patent related to the extension. 
 
 # Usage at 3dSlicer
 1) Install ThicknessMap extension by using the Extension Wizard or Manuel
