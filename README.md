@@ -21,5 +21,5 @@ License: The Slicer License.
 
 [1] Fluvio Lobo, Most Efficient Way of Creating a Thickness Map, Link: https://discourse.slicer.org/t/most-efficient-way-of-creating-a-thickness-map/18203/3
 
-# Sample view of the extension
+# An example extension output
 ![2](https://user-images.githubusercontent.com/22032994/158332495-b367f4e5-7c48-4864-9b43-cb600989ee3d.PNG)
