@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>321</width>
-    <height>175</height>
+    <width>383</width>
+    <height>204</height>
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -61,10 +61,10 @@
          <double>5.000000000000000</double>
         </property>
         <property name="minimum">
-         <double>-1000.000000000000000</double>
+         <double>-999999999999999.000000000000000</double>
         </property>
         <property name="maximum">
-         <double>1000.000000000000000</double>
+         <double>999999999999999.000000000000000</double>
         </property>
         <property name="value">
          <double>100.000000000000000</double>
@@ -93,7 +93,14 @@
       <string>Calculate Thickness Values</string>
      </property>
      <property name="text">
-      <string>Apply Thickness</string>
+      <string>Calculate Thickness</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="ApplyExportButton">
+     <property name="text">
+      <string>Export Landmark Thickness to out.csv</string>
      </property>
     </widget>
    </item>

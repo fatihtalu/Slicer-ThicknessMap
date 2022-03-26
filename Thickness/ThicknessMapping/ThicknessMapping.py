@@ -1,9 +1,10 @@
-from uuid import getnode
 import vtk, slicer
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin
 import SimpleITK as sitk
 import sitkUtils
+import pandas as pd
+from pathlib import Path
 
 #
 # ThicknessMapping
@@ -34,52 +35,6 @@ This file was originally developed by Muhammed Fatih Talu, Inonu University, Com
     # Additional initialization step after application startup is complete
     #slicer.app.connect("startupCompleted()", registerSampleData)
 
-'''
-def registerSampleData():
-  """
-  Add data sets to Sample Data module.
-  """
-  # It is always recommended to provide sample data for users to make it easy to try the module,
-  # but if no sample data is available then this method (and associated startupCompeted signal connection) can be removed.
-
-  import SampleData
-  iconsPath = os.path.join(os.path.dirname(__file__), 'Resources/Icons')
-
-  # To ensure that the source code repository remains small (can be downloaded and installed quickly)
-  # it is recommended to store data sets that are larger than a few MB in a Github release.
-
-  # ThicknessMapping1
-  SampleData.SampleDataLogic.registerCustomSampleDataSource(
-    # Category and sample name displayed in Sample Data module
-    category='ThicknessMapping',
-    sampleName='ThicknessMapping1',
-    # Thumbnail should have size of approximately 260x280 pixels and stored in Resources/Icons folder.
-    # It can be created by Screen Capture module, "Capture all views" option enabled, "Number of images" set to "Single".
-    thumbnailFileName=os.path.join(iconsPath, 'ThicknessMapping1.png'),
-    # Download URL and target file name
-    uris="https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/998cb522173839c78657f4bc0ea907cea09fd04e44601f17c82ea27927937b95",
-    fileNames='ThicknessMapping1.nrrd',
-    # Checksum to ensure file integrity. Can be computed by this command:
-    #  import hashlib; print(hashlib.sha256(open(filename, "rb").read()).hexdigest())
-    checksums = 'SHA256:998cb522173839c78657f4bc0ea907cea09fd04e44601f17c82ea27927937b95',
-    # This node name will be used when the data set is loaded
-    nodeNames='ThicknessMapping1'
-  )
-
-  # ThicknessMapping2
-  SampleData.SampleDataLogic.registerCustomSampleDataSource(
-    # Category and sample name displayed in Sample Data module
-    category='ThicknessMapping',
-    sampleName='ThicknessMapping2',
-    thumbnailFileName=os.path.join(iconsPath, 'ThicknessMapping2.png'),
-    # Download URL and target file name
-    uris="https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/1a64f3f422eb3d1c9b093d1a18da354b13bcf307907c66317e2463ee530b7a97",
-    fileNames='ThicknessMapping2.nrrd',
-    checksums = 'SHA256:1a64f3f422eb3d1c9b093d1a18da354b13bcf307907c66317e2463ee530b7a97',
-    # This node name will be used when the data set is loaded
-    nodeNames='ThicknessMapping2'
-  )
-'''
 #
 # ThicknessMappingWidget
 #
@@ -134,6 +89,7 @@ class ThicknessMappingWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     # Buttons
     self.ui.ApplySegmentationButton.connect('clicked(bool)', self.onApplySegmentationButton)
     self.ui.ApplyThicknessButton.connect('clicked(bool)', self.onApplyThicknessButton)
+    self.ui.ApplyExportButton.connect('clicked(bool)', self.onApplyExportButton)
 
     # Make sure parameter node is initialized (needed for module reload)
     self.initializeParameterNode()
@@ -223,7 +179,8 @@ class ThicknessMappingWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     # Update node selectors and sliders
     self.ui.inputSelector.setCurrentNode(self._parameterNode.GetNodeReference("InputVolume"))
-    self.ui.SegmentationThresholdSliderWidget.value = float(self._parameterNode.GetParameter("Threshold"))
+    if self._parameterNode.GetParameter("Threshold"):
+      self.ui.SegmentationThresholdSliderWidget.value = float(self._parameterNode.GetParameter("Threshold"))
 
     # All the GUI updates are done
     self._updatingGUIFromParameterNode = False
@@ -243,11 +200,15 @@ class ThicknessMappingWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
   def onApplySegmentationButton(self):
     with slicer.util.tryWithErrorDisplay("Segmentation is failed", waitCursor=True):      
-      self.logic.ProcessSegmentation(self.ui.inputSelector.currentNode(),self.ui.SegmentationThresholdSliderWidget.value)
+      self.logic.ProcessSegmentation(self.ui.inputSelector.currentNode(), self.ui.SegmentationThresholdSliderWidget.value)
 
   def onApplyThicknessButton(self):    
     with slicer.util.tryWithErrorDisplay("Thickness Calculation is failed.", waitCursor=True):
       self.logic.ProcessThickness(self.ui.inputSelector.currentNode())
+
+  def onApplyExportButton(self):    
+    with slicer.util.tryWithErrorDisplay("Export failed.", waitCursor=True):
+      self.logic.ProcessExport()
 
 class ThicknessMappingLogic(ScriptedLoadableModuleLogic):
   def __init__(self):
@@ -262,9 +223,9 @@ class ThicknessMappingLogic(ScriptedLoadableModuleLogic):
     else:
       segmentationNode = slicer.mrmlScene.GetFirstNode(None, "vtkMRMLSegmentationNode")
       if not segmentationNode:
-        segmentationNode = slicer.vtkMRMLSegmentationNode()
-        segmentationNode.SetName("Segmentation")
-        slicer.mrmlScene.AddNode(segmentationNode)            
+          segmentationNode = slicer.vtkMRMLSegmentationNode()
+          segmentationNode.SetName("Segmentation")
+          slicer.mrmlScene.AddNode(segmentationNode)            
 
       segmentationNode.CreateDefaultDisplayNodes() # only needed for display
       segmentationNode.SetReferenceImageGeometryParameterFromVolumeNode(masterVolumeNode)
@@ -276,25 +237,25 @@ class ThicknessMappingLogic(ScriptedLoadableModuleLogic):
 
       segmentEditorNode = slicer.vtkMRMLSegmentEditorNode()
       slicer.mrmlScene.AddNode(segmentEditorNode)
-      
+
       segmentEditorWidget.setMRMLSegmentEditorNode(segmentEditorNode)
       segmentEditorWidget.setSegmentationNode(segmentationNode)
       segmentEditorWidget.setMasterVolumeNode(masterVolumeNode)
 
-      # if segment is exist, getID
+      # if segment is exist
       visibleSegmentIds = vtk.vtkStringArray()
       segmentationNode.GetDisplayNode().GetVisibleSegmentIDs(visibleSegmentIds)
       if visibleSegmentIds.GetNumberOfValues() == 0:      
-        SegmentName = segmentationNode.GetSegmentation().AddEmptySegment("Segment")
+          SkullSegmentName = segmentationNode.GetSegmentation().AddEmptySegment("Segment")
       else:      
-        SegmentName = visibleSegmentIds.GetValue(0)
-      
+          SkullSegmentName = visibleSegmentIds.GetValue(0)
+
       ## THRESHOLDING
       slicer.app.processEvents()
-      segmentEditorNode.SetSelectedSegmentID(SegmentName)
+      segmentEditorNode.SetSelectedSegmentID(SkullSegmentName)
       segmentEditorWidget.setActiveEffectByName("Threshold")
       effect = segmentEditorWidget.activeEffect()
-      effect.setParameter("MinimumThreshold",str(SegmantationThreshold)); 
+      effect.setParameter("MinimumThreshold",str(SegmantationThreshold))
       effect.self().onApply()    
 
       ## KEEP_LARGEST_ISLAND
@@ -305,58 +266,91 @@ class ThicknessMappingLogic(ScriptedLoadableModuleLogic):
       effect.self().onApply()
       print("Segmentation finished")
 
-  def ProcessThickness(self, masterVolumeNode):    
+  def ProcessThickness(self, masterVolumeNode):
     segmentationNode = slicer.mrmlScene.GetFirstNode(None, "vtkMRMLSegmentationNode")
     if not segmentationNode and not masterVolumeNode:
       print("First, Select input volume and adjust segmentation threshold!")
     else:
       print("Thickness is calculating..")
-      ## LABELMAP             
+
+      # LABELMAP
       segs = vtk.vtkStringArray(); 
       segmentationNode.GetDisplayNode().GetVisibleSegmentIDs(segs)
-      labelmapNode = slicer.vtkMRMLLabelMapVolumeNode()
-      labelmapNode.SetName("LabelMap")
-      slicer.mrmlScene.AddNode(labelmapNode)
-      slicer.vtkSlicerSegmentationsModuleLogic.ExportSegmentsToLabelmapNode(segmentationNode, segs, labelmapNode, masterVolumeNode)    
+      labelMapNode = slicer.vtkMRMLLabelMapVolumeNode()
+      labelMapNode.SetName("Label")
+      slicer.mrmlScene.AddNode(labelMapNode)
+      slicer.vtkSlicerSegmentationsModuleLogic.ExportSegmentsToLabelmapNode(segmentationNode, segs, labelMapNode, masterVolumeNode)  
 
-      ## Model 
-      shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
-      exportFolderItemId = shNode.CreateFolderItem(shNode.GetSceneItemID(), "Models")
-      slicer.modules.segmentations.logic().ExportAllSegmentsToModels(segmentationNode, exportFolderItemId)    
+      # Model 
+      slicer.modules.segmentations.logic().ExportAllSegmentsToModels(segmentationNode, slicer.mrmlScene.GetSubjectHierarchyNode().GetSceneItemID())
+      modelNode = slicer.mrmlScene.GetFirstNodeByName("Segment")
+      modelNode.SetName("Model")  
 
-      ## FILTERS: BinaryThinningFilter for getting medial surface
-      # Create new volume node for output
-      MedialSurfaceNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode", "Medial_Surface_Node")
-      # Run filter
-      inputImage = sitkUtils.PullVolumeFromSlicer(labelmapNode)
+      # BinaryThinningFilter
+      ThinLabelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode", "ThinLabel")      
+      inputImage = sitkUtils.PullVolumeFromSlicer(labelMapNode)
       filter = sitk.BinaryThinningImageFilter()
       outputImage = filter.Execute(inputImage)
-      sitkUtils.PushVolumeToSlicer(outputImage, MedialSurfaceNode)    
-
-      ## FILTERS: DanielssonDistanceMapImageFilter for distance_map
-      # Create new volume node for output
-      DistanceMapNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode", "Distance_Map")
-      # Run filter
-      inputImage = sitkUtils.PullVolumeFromSlicer(MedialSurfaceNode)
+      sitkUtils.PushVolumeToSlicer(outputImage, ThinLabelNode);   
+      
+      # DanielssonDistanceMapImageFilter      
+      distThinLabelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode", "DistThinLabel")      
+      inputImage = sitkUtils.PullVolumeFromSlicer(ThinLabelNode)
       filter = sitk.DanielssonDistanceMapImageFilter()
-      outputImage = 2 * filter.Execute(inputImage)
-      sitkUtils.PushVolumeToSlicer(outputImage, DistanceMapNode)
+      outputImage = filter.Execute(inputImage)
+      outputImage = outputImage * 2
+      sitkUtils.PushVolumeToSlicer(outputImage, distThinLabelNode)
 
-      ## ProbeVolumeWithModel: Coloring for distance_map with model
-      InputModelNode = slicer.mrmlScene.GetFirstNodeByName("Segment")    
-      OutputModelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode", "ThicknessMap")    
+      ## ProbeVolumeWithModel: Coloring for distance_map with model         
+      thicknessNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode", "ThicknessMap")    
       # Parameters for ProbeVolumeWithModel
       parameters = {}
-      parameters["InputVolume"] = DistanceMapNode.GetID()
-      parameters["InputModel"] = InputModelNode.GetID()
-      parameters["OutputModel"] = OutputModelNode.GetID()   
+      parameters["InputVolume"] = distThinLabelNode.GetID()
+      parameters["InputModel"] = modelNode.GetID()
+      parameters["OutputModel"] = thicknessNode.GetID()   
       # Run probe
       probe = slicer.modules.probevolumewithmodel
       slicer.cli.run(probe, None, parameters, wait_for_completion=True)
-      colorLegendDisplayNode = slicer.modules.colors.logic().AddDefaultColorLegendDisplayNode(OutputModelNode)
+      colorLegendDisplayNode = slicer.modules.colors.logic().AddDefaultColorLegendDisplayNode(thicknessNode)
       colorLegendDisplayNode.SetNumberOfLabels(15)
       colorLegendDisplayNode.SetTitleText('Thickness(mm)')
       print("Process completed!. You see ThicknessMap Model")          
+
+  def ProcessExport(self):
+    pointListNode = slicer.util.getNode("F")
+    thicknessNode = slicer.util.getNode("ThicknessMap")
+    if not thicknessNode or not pointListNode:
+      print("First, Calculate Thickness and Place Landmarks!")
+    else:
+      # Get Thickness value from model
+      thicknessAll = slicer.util.arrayFromModelPointData(thicknessNode, 'NRRDImage')
+      
+      # Find thickness 
+      pointsLocator = vtk.vtkPointLocator()
+      pointsLocator.SetDataSet(thicknessNode.GetPolyData())
+      pointsLocator.BuildLocator()
+
+      Label = vtk.vtkStringArray()
+      pointListNode.GetControlPointLabels(Label)
+
+      nOfControlPoints = pointListNode.GetNumberOfControlPoints()
+      LabelNames = []; ThicknessValue = []
+      for i in range(0, nOfControlPoints):        
+          ras = [0,0,0]
+          pointListNode.GetNthControlPointPositionWorld(i, ras)
+          closestPointId = pointsLocator.FindClosestPoint(ras)    
+          LabelNames.append(Label.GetValue(i))
+          ThicknessValue.append(thicknessAll[closestPointId])
+
+      data = {'Landmark': LabelNames,'Thickness': ThicknessValue}
+      df = pd.DataFrame(data)
+      
+      # save results to csv file
+      filepath = Path('out.csv')
+      filepath.parent.mkdir(parents=True, exist_ok=True)  
+      df.to_csv(filepath,index=False)
+      print(df)
+      print("File saved. You can see it next to Slicer.exe.")    
 
 class ThicknessMappingTest(ScriptedLoadableModuleTest):
 
@@ -378,13 +372,12 @@ class ThicknessMappingTest(ScriptedLoadableModuleTest):
     inputScalarRange = inputVolume.GetImageData().GetScalarRange()
     self.assertEqual(inputScalarRange[0], 0)
     self.assertEqual(inputScalarRange[1], 695)
-
-    outputVolume = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode")
+    
     threshold = 150
-
     # Test the module logic
     logic = ThicknessMappingLogic()    
     logic.ProcessSegmentation(inputVolume, threshold)
     logic.ProcessThickness(inputVolume)
+    logic.ProcessExport()
 
     self.delayDisplay('Test passed')
