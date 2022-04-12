@@ -263,16 +263,13 @@ class ThicknessMappingLogic(ScriptedLoadableModuleLogic):
       segmentEditorWidget.setActiveEffectByName("Islands")
       effect = segmentEditorWidget.activeEffect()
       effect.setParameterDefault("Operation", "KEEP_LARGEST_ISLAND")
-      effect.self().onApply()
-      print("Segmentation finished")
+      effect.self().onApply()      
 
   def ProcessThickness(self, masterVolumeNode):
     segmentationNode = slicer.mrmlScene.GetFirstNode(None, "vtkMRMLSegmentationNode")
     if not segmentationNode and not masterVolumeNode:
       print("First, Select input volume and adjust segmentation threshold!")
-    else:
-      print("Thickness is calculating..")
-
+    else:      
       # LABELMAP
       segs = vtk.vtkStringArray(); 
       segmentationNode.GetDisplayNode().GetVisibleSegmentIDs(segs)
@@ -366,18 +363,16 @@ class ThicknessMappingTest(ScriptedLoadableModuleTest):
 
     # Get/create input data
     import SampleData   
-    inputVolume = SampleData.downloadSample('ThicknessMapping1')
+    inputVolume = SampleData.downloadSample('MRHead')
     self.delayDisplay('Loaded test data set')
-
-    inputScalarRange = inputVolume.GetImageData().GetScalarRange()
-    self.assertEqual(inputScalarRange[0], 0)
-    self.assertEqual(inputScalarRange[1], 695)
     
-    threshold = 150
+    threshold = 100
     # Test the module logic
     logic = ThicknessMappingLogic()    
     logic.ProcessSegmentation(inputVolume, threshold)
+    
+    self.delayDisplay('Running Thickness Calculation. It takes approximately 30 seconds')    
     logic.ProcessThickness(inputVolume)
-    logic.ProcessExport()
+    # logic.ProcessExport()
 
     self.delayDisplay('Test passed')
