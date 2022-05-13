@@ -13,7 +13,7 @@ License: The Slicer License.
 4) Set a threshold value to get a segment from the 3D volume and click Apply Segmentation button. You can repeat this process until you find the most suitable threshold value
 7) Click the Apply Thickness button to generate Thickness Map model of the segment
 
-# Algorithm [1]
+# Algorithm
 1) Export Label-Map and Model from the segmentation
 2) A medial surface from the label-map is created by using the BinaryThinningImageFilter
 3) A distance map from the medial surface is created by using the DanielssonDistanceMapImageFilter (Binary=Yes and ImageSpacing=Yes)
